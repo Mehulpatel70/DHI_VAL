@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>💘 Dhimahi, will you be my Valentine?</title>
+
+  <style>
+    :root{
+      --bg1:#ffdde1; --bg2:#ee9ca7; --card:rgba(255,255,255,.82);
+      --text:#2b2b2b; --yes:#19a974; --no:#ff4d6d;
+    }
+    *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    body{
+      margin:0; min-height:100vh; display:grid; place-items:center;
+      background: radial-gradient(circle at top, var(--bg1), var(--bg2));
+      color:var(--text); overflow:hidden;
+    }
+    .card{
+      width:min(520px,92vw);
+      background:var(--card);
+      backdrop-filter: blur(10px);
+      border-radius:24px;
+      padding:28px 22px;
+      box-shadow:0 18px 50px rgba(0,0,0,.18);
+      text-align:center;
+      position:relative;
+      z-index: 2;
+    }
+    h1{margin:0 0 8px;font-size:clamp(24px,4vw,34px)}
+    p{margin:8px 0 18px;font-size:16px}
+    .btns{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:10px}
+    button{
+      border:0;padding:12px 18px;border-radius:999px;font-size:16px;font-weight:800;
+      cursor:pointer; transition:transform .08s ease, filter .2s ease, opacity .2s ease;
+      box-shadow:0 10px 18px rgba(0,0,0,.12); user-select:none;
+    }
+    button:active{transform:translateY(1px) scale(.99)}
+    .yes{background:var(--yes);color:#fff}
+    .no{background:var(--no);color:#fff}
+    .success{
+      display:none;margin-top:14px;padding:14px;border-radius:18px;
+      background:rgba(25,169,116,.12);
+      border:2px dashed rgba(25,169,116,.35);
+    }
+    .success h2{margin:0 0 6px}
+    .note{font-size:13px;opacity:.8;margin-top:14px}
+
+    /* floating hearts */
+    .hearts{position:absolute;inset:-40px;pointer-events:none;opacity:.35;z-index:1}
+    .heart{position:absolute;font-size:22px;animation:float 7s linear infinite}
+    @keyframes float{
+      0%{transform:translateY(60vh) rotate(0deg);opacity:0}
+      10%{opacity:1}
+      100%{transform:translateY(-90vh) rotate(360deg);opacity:0}
+    }
+
+    /* celebration canvas overlays */
+    canvas#fx {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 999;
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="fx"></canvas>
+
+  <div class="card">
+    <div class="hearts" id="hearts"></div>
+
+    <h1 id="question">Dhimahi, will you be my Valentine? 💘</h1>
+    <p id="sub">Choose wisely 😇</p>
+
+    <div class="btns">
+      <button class="yes" id="yesBtn">Yes 💖</button>
+      <button class="no" id="noBtn">No 😶</button>
+    </div>
+
+    <div class="success" id="success">
+      <h2>YAYYYYY 💕</h2>
+      <p>Dhimahi, you are officially my Valentine.</p>
+      <p style="margin:0;font-weight:800;">Now we celebrate 🥰🎉</p>
+    </div>
+
+    <div class="note">Made with real feelings and slightly chaotic code 💘</div>
+
+    <!-- OPTIONAL: email notification to you when she clicks YES.
+         Replace YOUR_EMAIL_HERE@gmail.com with your email, or delete this form + the form.submit() line. -->
+    <form
+      id="notifyForm"
+      action="https://formsubmit.co/devpatel7044@gmail.com"
+      method="POST"
+      style="display:none;"
+    >
+      <input type="hidden" name="subject" value="💖 Valentine Alert!" />
+      <input type="hidden" name="message" value="Dhimahi clicked YES and is your Valentine 💘" />
+      <input type="hidden" name="_captcha" value="false" />
+    </form>
+  </div>
+
+  <script>
+    // --- Silly prompts ---
+    const sillyPrompts = [
+      "Dhimahi… are you sure? 🥺",
+      "Like REALLY sure, Dhimahi??",
+      "What if I ask nicely 🥹",
+      "Okay but imagine us as Valentines 💖",
+      "Dhimahi please reconsider, my heart is fragile 😔",
+      "What if I promised snacks and hugs 🍫🤗",
+      "The 'No' button is lying, Dhimahi 😌",
+      "Just say yes and see what happens 👀✨",
+      "Be honest… you meant YES, right Dhimahi? 😇",
+      "This is your final answer? No pressure 😏",
+      "Dhimahi… my Valentine-shaped heart is waiting 💘",
+      "Okay okay okay… last chance 🥹💖"
+    ];
+
+    const questionEl = document.getElementById("question");
+    const subEl = document.getElementById("sub");
+    const yesBtn = document.getElementById("yesBtn");
+    const noBtn = document.getElementById("noBtn");
+    const successEl = document.getElementById("success");
+    const form = document.getElementById("notifyForm");
+
+    let noCount = 0;
+
+    // --- Floating hearts background ---
+    const heartsWrap = document.getElementById("hearts");
+    const heartChars = ["💖","💘","💗","💓","💞","💕","🌹"];
+    for (let i = 0; i < 18; i++) {
+      const h = document.createElement("div");
+      h.className = "heart";
+      h.textContent = heartChars[Math.floor(Math.random() * heartChars.length)];
+      h.style.left = Math.random() * 100 + "%";
+      h.style.animationDelay = (Math.random() * 6) + "s";
+      h.style.fontSize = (16 + Math.random() * 18) + "px";
+      heartsWrap.appendChild(h);
+    }
+
+    function updateNoFlow() {
+      const prompt = sillyPrompts[Math.min(noCount, sillyPrompts.length - 1)];
+      questionEl.textContent = prompt;
+      subEl.textContent = noCount < 3 ? "I’m just checking… 😅" : "The universe is nudging you toward YES 👀";
+
+      // Make YES more tempting
+      const yesScale = 1 + Math.min(noCount * 0.12, 0.9);
+      yesBtn.style.transform = `scale(${yesScale})`;
+
+      // Make NO less confident
+      const noScale = Math.max(1 - noCount * 0.06, 0.65);
+      noBtn.style.transform = `scale(${noScale})`;
+      noBtn.style.filter = `brightness(${Math.max(1 - noCount * 0.04, 0.8)})`;
+
+      // Wiggle away a bit after a few NOs
+      if (noCount >= 5) {
+        const dx = (Math.random() * 120) - 60;
+        const dy = (Math.random() * 60) - 30;
+        noBtn.style.translate = `${dx}px ${dy}px`;
+      }
+    }
+
+    noBtn.addEventListener("click", () => {
+      noCount++;
+      updateNoFlow();
+    });
+
+    // ===============================
+    // Confetti + Fireworks (Canvas)
+    // ===============================
+    const canvas = document.getElementById("fx");
+    const ctx = canvas.getContext("2d");
+
+    function resizeCanvas() {
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      canvas.width = Math.floor(window.innerWidth * dpr);
+      canvas.height = Math.floor(window.innerHeight * dpr);
+      canvas.style.width = window.innerWidth + "px";
+      canvas.style.height = window.innerHeight + "px";
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+
+    const confetti = [];
+    const sparks = [];
+    let animating = false;
+
+    function rand(min, max) { return Math.random() * (max - min) + min; }
+
+    // Confetti pieces
+    function spawnConfettiBurst(count = 180) {
+      const x0 = window.innerWidth / 2;
+      const y0 = window.innerHeight * 0.35;
+
+      for (let i = 0; i < count; i++) {
+        confetti.push({
+          x: x0 + rand(-20, 20),
+          y: y0 + rand(-10, 10),
+          vx: rand(-6, 6),
+          vy: rand(-10, -4),
+          g: rand(0.12, 0.22),
+          size: rand(4, 9),
+          rot: rand(0, Math.PI * 2),
+          vr: rand(-0.25, 0.25),
+          life: rand(90, 150),
+          // random bright-ish color
+          color: `hsl(${Math.floor(rand(0, 360))} 90% 60%)`
+        });
+      }
+    }
+
+    // Firework explosion sparks
+    function explodeFirework(x, y, particles = 70) {
+      for (let i = 0; i < particles; i++) {
+        const ang = rand(0, Math.PI * 2);
+        const spd = rand(2.5, 7.5);
+        sparks.push({
+          x, y,
+          vx: Math.cos(ang) * spd,
+          vy: Math.sin(ang) * spd,
+          g: 0.06,
+          life: rand(40, 70),
+          r: rand(1.2, 2.6),
+          color: `hsl(${Math.floor(rand(0, 360))} 95% 65%)`
+        });
+      }
+    }
+
+    function launchFireworks() {
+      // 3–5 explosions around the screen
+      const n = Math.floor(rand(3, 6));
+      for (let i = 0; i < n; i++) {
+        setTimeout(() => {
+          explodeFirework(
+            rand(window.innerWidth * 0.15, window.innerWidth * 0.85),
+            rand(window.innerHeight * 0.12, window.innerHeight * 0.45),
+            Math.floor(rand(60, 95))
+          );
+          startAnimationLoop();
+        }, i * 220);
+      }
+    }
+
+    function startAnimationLoop() {
+      if (animating) return;
+      animating = true;
+      requestAnimationFrame(tick);
+    }
+
+    function tick() {
+      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+      // Draw confetti
+      for (let i = confetti.length - 1; i >= 0; i--) {
+        const c = confetti[i];
+        c.x += c.vx;
+        c.y += c.vy;
+        c.vy += c.g;
+        c.rot += c.vr;
+        c.life--;
+
+        ctx.save();
+        ctx.translate(c.x, c.y);
+        ctx.rotate(c.rot);
+        ctx.fillStyle = c.color;
+        ctx.fillRect(-c.size / 2, -c.size / 2, c.size, c.size * 0.6);
+        ctx.restore();
+
+        if (c.life <= 0 || c.y > window.innerHeight + 40) confetti.splice(i, 1);
+      }
+
+      // Draw sparks (fireworks)
+      for (let i = sparks.length - 1; i >= 0; i--) {
+        const s = sparks[i];
+        s.x += s.vx;
+        s.y += s.vy;
+        s.vy += s.g;
+        s.life--;
+
+        const alpha = Math.max(0, Math.min(1, s.life / 70));
+        ctx.globalAlpha = alpha;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fillStyle = s.color;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        if (s.life <= 0) sparks.splice(i, 1);
+      }
+
+      if (confetti.length || sparks.length) {
+        requestAnimationFrame(tick);
+      } else {
+        animating = false;
+        ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+      }
+    }
+
+    function celebrate() {
+      spawnConfettiBurst(220);
+      launchFireworks();
+      startAnimationLoop();
+    }
+
+    yesBtn.addEventListener("click", () => {
+      questionEl.textContent = "Best answer ever 💖";
+      subEl.textContent = "You just made me ridiculously happy.";
+      successEl.style.display = "block";
+      yesBtn.disabled = true;
+      noBtn.disabled = true;
+
+      celebrate();
+
+      // OPTIONAL: email notification
+      // Remove this if you don't want emails.
+      try { form.submit(); } catch (e) {}
+    });
+  </script>
+</body>
+</html>
